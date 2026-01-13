@@ -8,7 +8,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/kiyange/argo-with-ytt-sample-application.git
+    repoURL: https://github.com/mofwili/argo-with-ytt-sample-application.git
     targetRevision: HEAD
     path: k8s
     
