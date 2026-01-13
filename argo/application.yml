@@ -1,0 +1,57 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: simple-app
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/manifest-generate-paths: ".;k8s/"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/kiyange/argo-with-ytt-sample-application.git
+    targetRevision: HEAD
+    path: k8s
+    
+    # Plugin configuration for ytt
+    plugin:
+      name: ytt
+      env:
+        - name: YTT_VALUES_FILES
+          value: "ytt-values.yml"
+    
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+    
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  # Ignore differences in replicas (let HPA manage it)
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas
+  
+  # Health checks
+  healthChecks:
+    - group: apps
+      kind: Deployment
+      name: simple-app
+      namespace: default

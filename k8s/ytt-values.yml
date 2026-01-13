@@ -1,0 +1,66 @@
+#@data/values
+---
+# Application Configuration
+app:
+  name: "simple-app"
+  image: "vatoscripts/simple-app"
+  tag: "latest"
+  port: 8080
+  replicas: 2
+  
+  # Environment variables
+  env:
+    APP_VERSION: "1.0.0"
+    ENVIRONMENT: "development"
+    DEBUG: "false"
+    NODE_ENV: "production"
+    
+  # Resource limits and requests
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "200m"
+      memory: "256Mi"
+    
+  # Health checks
+  probes:
+    liveness:
+      path: "/health"
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 3
+      failureThreshold: 3
+    readiness:
+      path: "/health"
+      initialDelaySeconds: 5
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 3
+
+# Service Configuration
+service:
+  name: "simple-app-service"
+  port: 80
+  targetPort: 8080
+  type: "ClusterIP"
+  
+# Ingress Configuration (optional)
+ingress:
+  enabled: false
+  host: "simple-app.local"
+  class: "nginx"
+  annotations: {}
+  
+# Namespace
+namespace: "default"
+
+# Additional labels and annotations
+labels:
+  app.kubernetes.io/name: "simple-app"
+  app.kubernetes.io/version: "1.0.0"
+  app.kubernetes.io/managed-by: "argocd"
+  
+annotations:
+  argocd.argoproj.io/sync-wave: "0"

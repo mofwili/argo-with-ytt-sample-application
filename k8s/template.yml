@@ -1,0 +1,88 @@
+#@ load("@ytt:data", "data")
+
+#! Define variables for easier access
+#@ app = data.values.app
+#@ service = data.values.service
+#@ ingress = data.values.ingress
+#@ namespace = data.values.namespace
+#@ labels = data.values.labels
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: #@ app.name
+  namespace: #@ namespace
+  labels: #@ labels
+spec:
+  replicas: #@ app.replicas
+  selector:
+    matchLabels:
+      app: #@ app.name
+  template:
+    metadata:
+      labels:
+        app: #@ app.name
+    spec:
+      containers:
+      - name: #@ app.name
+        image: #@ "{0}:{1}".format(app.image, app.tag)
+        ports:
+        - containerPort: #@ app.port
+        env:
+        #@ for key, value in app.env.items():
+        - name: #@ key
+          value: #@ str(value)
+        #@ end
+        #@ if hasattr(app, 'resources'):
+        resources: #@ app.resources
+        #@ end
+        #@ if hasattr(app, 'probes'):
+        livenessProbe:
+          httpGet:
+            path: #@ app.probes.liveness.path
+            port: #@ app.port
+          initialDelaySeconds: #@ app.probes.liveness.initialDelaySeconds
+          periodSeconds: #@ app.probes.liveness.periodSeconds
+        readinessProbe:
+          httpGet:
+            path: #@ app.probes.readiness.path
+            port: #@ app.port
+          initialDelaySeconds: #@ app.probes.readiness.initialDelaySeconds
+          periodSeconds: #@ app.probes.readiness.periodSeconds
+        #@ end
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: #@ service.name
+  namespace: #@ namespace
+spec:
+  selector:
+    app: #@ app.name
+  ports:
+  - port: #@ service.port
+    targetPort: #@ app.port
+  type: #@ service.type
+#@ if ingress.enabled:
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: #@ "{0}-ingress".format(app.name)
+  namespace: #@ namespace
+  annotations:
+    kubernetes.io/ingress.class: #@ ingress.class
+spec:
+  rules:
+  - host: #@ ingress.host
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: #@ service.name
+            port:
+              number: #@ service.port
+#@ end
